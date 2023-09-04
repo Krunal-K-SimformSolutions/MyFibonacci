@@ -23,8 +23,8 @@ import {
 } from 'react-native';
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import {
-  NativeJavaModule,
-  NativeKotlinModule,
+  NativeJavaOrObjectiveCModule,
+  NativeKotlinOrSwiftModule,
   ModuleEventName,
 } from './NativeModules';
 
@@ -33,6 +33,8 @@ type SectionProps = PropsWithChildren<{
   start: () => void;
   stop: () => void;
   change: () => void;
+  isRunningJavaOrObjectiveCFibonacci?: boolean;
+  isRunningKotlinOrSwiftFibonacci?: boolean;
 }>;
 
 function Section({
@@ -41,6 +43,8 @@ function Section({
   start,
   stop,
   change,
+  isRunningJavaOrObjectiveCFibonacci,
+  isRunningKotlinOrSwiftFibonacci,
 }: SectionProps): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
   const backgroundStyle = {
@@ -49,24 +53,55 @@ function Section({
   const colorStyle = {
     color: isDarkMode ? Colors.white : Colors.black,
   };
+  const colorDisableStyle = {
+    color: isDarkMode ? Colors.dark : Colors.light,
+  };
+  const disabled: boolean =
+    isRunningJavaOrObjectiveCFibonacci === true ||
+    isRunningKotlinOrSwiftFibonacci === true;
+
   return (
     <View style={styles.sectionContainer}>
       <Text style={[styles.sectionTitle, colorStyle]}>{title}</Text>
       <View style={styles.sectionButtonContainer}>
         <TouchableOpacity
           style={[styles.buttonContainer, backgroundStyle]}
+          disabled={disabled}
           onPress={start}>
-          <Text style={[styles.sectionTitle, colorStyle]}>Start</Text>
+          <Text
+            style={[
+              styles.sectionTitle,
+              colorStyle,
+              disabled && colorDisableStyle,
+            ]}>
+            Start
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.buttonContainer, backgroundStyle]}
+          disabled={!disabled}
           onPress={stop}>
-          <Text style={[styles.sectionTitle, colorStyle]}>Stop</Text>
+          <Text
+            style={[
+              styles.sectionTitle,
+              colorStyle,
+              !disabled && colorDisableStyle,
+            ]}>
+            Stop
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.buttonContainer, backgroundStyle, styles.doubleFlex]}
+          disabled={disabled}
           onPress={change}>
-          <Text style={[styles.sectionTitle, colorStyle]}>Change Interval</Text>
+          <Text
+            style={[
+              styles.sectionTitle,
+              colorStyle,
+              disabled && colorDisableStyle,
+            ]}>
+            Change Interval
+          </Text>
         </TouchableOpacity>
       </View>
       <Text
@@ -83,10 +118,22 @@ function Section({
 }
 
 function App(): JSX.Element {
-  const [fibonacci1, setFibonacci1] = useState('');
-  const [fibonacci2, setFibonacci2] = useState('');
-  const [value, setValue] = useState('');
-  const isDarkMode = useColorScheme() === 'dark';
+  const [
+    fibonacciFromJavaOrObjectiveCModule,
+    setFibonacciFromJavaOrObjectiveCModule,
+  ] = useState<String>('');
+  const [
+    fibonacciFromKotlinOrSwiftModule,
+    setFibonacciFromKotlinOrSwiftModule,
+  ] = useState<String>('');
+  const [intervalValue, setIntervalValue] = useState('');
+  const [
+    isRunningJavaOrObjectiveCFibonacci,
+    setRunningJavaOrObjectiveCFibonacci,
+  ] = useState<boolean>(false);
+  const [isRunningKotlinOrSwiftFibonacci, setRunningKotlinOrSwiftFibonacci] =
+    useState<boolean>(false);
+  const isDarkMode: boolean = useColorScheme() === 'dark';
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
@@ -94,30 +141,30 @@ function App(): JSX.Element {
 
   useEffect(() => {
     // Add listener for event sent from Native
-    const eventEmitter1: NativeEventEmitter = new NativeEventEmitter(
-      NativeJavaModule,
-    );
-    const eventEmitter2: NativeEventEmitter = new NativeEventEmitter(
-      NativeKotlinModule,
-    );
+    const eventEmitterForJavaOrObjectiveCModule: NativeEventEmitter =
+      new NativeEventEmitter(NativeJavaOrObjectiveCModule);
+    const eventEmitterForKotlinOrSwiftModule: NativeEventEmitter =
+      new NativeEventEmitter(NativeKotlinOrSwiftModule);
 
-    const subscription1: EmitterSubscription = eventEmitter1.addListener(
-      ModuleEventName[0],
-      num => {
-        setFibonacci1(prev => `${prev}${num}`);
-      },
-    );
-    const subscription2: EmitterSubscription = eventEmitter2.addListener(
-      ModuleEventName[1],
-      num => {
-        setFibonacci2(prev => `${prev}${num}`);
-      },
-    );
+    const subscriptionForJavaOrObjectiveCModule: EmitterSubscription =
+      eventEmitterForJavaOrObjectiveCModule.addListener(
+        ModuleEventName[0],
+        num => {
+          setFibonacciFromJavaOrObjectiveCModule(prev => `${prev}${num}`);
+        },
+      );
+    const subscriptionForKotlinOrSwiftModule: EmitterSubscription =
+      eventEmitterForKotlinOrSwiftModule.addListener(
+        ModuleEventName[1],
+        num => {
+          setFibonacciFromKotlinOrSwiftModule(prev => `${prev}${num}`);
+        },
+      );
 
     // Remove listener for event
     return () => {
-      subscription1.remove();
-      subscription2.remove();
+      subscriptionForJavaOrObjectiveCModule.remove();
+      subscriptionForKotlinOrSwiftModule.remove();
     };
   }, []);
 
@@ -155,66 +202,88 @@ function App(): JSX.Element {
                 borderColor: isDarkMode ? Colors.light : Colors.dark,
               },
             ]}
-            value={value}
+            value={intervalValue}
             onChangeText={(text: string) => {
-              setValue(text.replace(/\D/g, ''));
+              setIntervalValue(text.replace(/\D/g, ''));
             }}
           />
           <Section
             title="Native Java/Objective-C Module"
+            isRunningJavaOrObjectiveCFibonacci={
+              isRunningJavaOrObjectiveCFibonacci
+            }
+            isRunningKotlinOrSwiftFibonacci={undefined}
             start={() => {
-              setFibonacci1('');
-              NativeJavaModule.startFibonacciStream()
+              setFibonacciFromJavaOrObjectiveCModule('');
+              NativeJavaOrObjectiveCModule.startFibonacciStream()
                 .then((message: string) => {
                   Alert.alert('Success', `${message}`);
+                  setRunningJavaOrObjectiveCFibonacci(true);
                 })
                 .catch((error: any) => {
                   Alert.alert('Got Error', `${error}`);
                 });
             }}
             stop={() => {
-              NativeJavaModule.stopFibonacciStream()
+              NativeJavaOrObjectiveCModule.stopFibonacciStream()
                 .then((message: string) => {
                   Alert.alert('Success', `${message}`);
+                  setRunningJavaOrObjectiveCFibonacci(false);
                 })
                 .catch((error: any) => {
                   Alert.alert('Got Error', `${error}`);
                 });
             }}
             change={() => {
-              NativeJavaModule.stopFibonacciStream();
-              NativeJavaModule.setTimeInterval(parseInt(value ?? '5000', 10));
-              setValue('');
+              NativeJavaOrObjectiveCModule.setTimeInterval(
+                parseInt(
+                  intervalValue.trim().length <= 0
+                    ? '5000'
+                    : intervalValue.trim(),
+                  10,
+                ),
+              );
+              setIntervalValue('');
             }}>
-            {fibonacci1}
+            {fibonacciFromJavaOrObjectiveCModule}
           </Section>
           <Section
             title="Native Kotlin/Swift Module"
+            isRunningKotlinOrSwiftFibonacci={isRunningKotlinOrSwiftFibonacci}
+            isRunningJavaOrObjectiveCFibonacci={undefined}
             start={() => {
-              setFibonacci2('');
-              NativeKotlinModule.startFibonacciStream()
+              setFibonacciFromKotlinOrSwiftModule('');
+              NativeKotlinOrSwiftModule.startFibonacciStream()
                 .then((message: string) => {
                   Alert.alert('Success', `${message}`);
+                  setRunningKotlinOrSwiftFibonacci(true);
                 })
                 .catch((error: any) => {
                   Alert.alert('Got Error', `${error}`);
                 });
             }}
             stop={() => {
-              NativeKotlinModule.stopFibonacciStream()
+              NativeKotlinOrSwiftModule.stopFibonacciStream()
                 .then((message: string) => {
                   Alert.alert('Success', `${message}`);
+                  setRunningKotlinOrSwiftFibonacci(false);
                 })
                 .catch((error: any) => {
                   Alert.alert('Got Error', `${error}`);
                 });
             }}
             change={() => {
-              NativeKotlinModule.stopFibonacciStream();
-              NativeKotlinModule.setTimeInterval(parseInt(value ?? '5000', 10));
-              setValue('');
+              NativeKotlinOrSwiftModule.setTimeInterval(
+                parseInt(
+                  intervalValue.trim().length <= 0
+                    ? '5000'
+                    : intervalValue.trim(),
+                  10,
+                ),
+              );
+              setIntervalValue('');
             }}>
-            {fibonacci2}
+            {fibonacciFromKotlinOrSwiftModule}
           </Section>
         </View>
       </ScrollView>

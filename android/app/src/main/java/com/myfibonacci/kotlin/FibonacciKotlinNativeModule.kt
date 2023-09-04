@@ -85,7 +85,10 @@ class FibonacciKotlinNativeModule(context: ReactApplicationContext) : ReactConte
         try {
             streamTimer?.cancel()
             delayTimeInterval = 5000.0
-            fibonacciSeries.resetFibonacciNum();
+            streamTimer = Timer()
+            delayTimeInterval = 5000.0
+            fibonacciSeries = FibonacciSeries()
+            fibonacciSeries?.resetFibonacciNum();
             promise.resolve("stop fibonacci stream")
         } catch (e: Exception) {
             promise.reject("Failed to stop fibonacci stream", e.message)

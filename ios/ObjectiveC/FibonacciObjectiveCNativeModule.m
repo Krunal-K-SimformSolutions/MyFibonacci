@@ -40,6 +40,10 @@ RCT_EXPORT_MODULE(FibonacciObjectiveCNativeModule); // FibonacciObjectiveCNative
   return NO;
 }
 
+- (dispatch_queue_t)methodQueue {
+  return dispatch_get_main_queue();
+}
+
 /**
  * Sends a native event to the JavaScript side.
  *
@@ -56,10 +60,15 @@ RCT_EXPORT_MODULE(FibonacciObjectiveCNativeModule); // FibonacciObjectiveCNative
  *
  * @param milliseconds The number of milliseconds to trigger fibonacci streaming.
  */
-RCT_EXPORT_METHOD(setTimeInterval: (NSNumber *)milliseconds)
+RCT_EXPORT_METHOD(setTimeInterval: (nonnull NSNumber *)milliseconds)
 {
   RCTLogInfo(@"Passing data from JS to Native: %@", milliseconds);
   self.delayTimeInterval = milliseconds;
+}
+
+- (void)sendFibonacci {
+  [self.fibonacciSeries generateNextFibonacciNum];
+  [self sendNativeEventToJS:@"fibonacciObjectiveCEvent" _:[self.fibonacciSeries getFibonacciNum]];
 }
 
 /**
@@ -70,12 +79,10 @@ RCT_EXPORT_METHOD(setTimeInterval: (NSNumber *)milliseconds)
 RCT_EXPORT_METHOD(startFibonacciStream: (RCTPromiseResolveBlock)resolve rejecter: (RCTPromiseRejectBlock)reject)
 {
   @try {
-    dispatch_async(dispatch_get_main_queue(), ^{
-      self.streamTimer = [NSTimer scheduledTimerWithTimeInterval:[self.delayTimeInterval doubleValue] / 1000 repeats:YES block:^(NSTimer *timer) {
-        [self.fibonacciSeries generateNextFibonacciNum];
-        [self sendNativeEventToJS:@"fibonacciObjectiveCEvent" _:[self.fibonacciSeries getFibonacciNum]];
-      }];
-    });
+    self.streamTimer = [NSTimer scheduledTimerWithTimeInterval:[self.delayTimeInterval doubleValue] / 1000
+                                                    target:self
+                                                    selector:@selector(sendFibonacci)
+                                                    userInfo:nil repeats:YES];
     [self sendNativeEventToJS:@"fibonacciObjectiveCEvent" _:[self.fibonacciSeries getInitFibonacciNum]];
     resolve(@"start fibonacci stream");
   } @catch (NSError *error) {

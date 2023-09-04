@@ -44,6 +44,13 @@ class FibonacciSwiftNativeModule: RCTEventEmitter  {
     return false
   }
   
+  @objc
+  override var methodQueue: DispatchQueue {
+    get {
+      return DispatchQueue.main
+    }
+  }
+  
   /**
    * Sends a native event to the JavaScript side.
    *
@@ -64,6 +71,12 @@ class FibonacciSwiftNativeModule: RCTEventEmitter  {
     delayTimeInterval = milliseconds
   }
   
+  @objc
+  func sendFibonacci() -> Void {
+    self.fibonacciSeries?.generateNextFibonacciNum()
+    self.sendNativeEventToJS("fibonacciSwiftEvent", num: self.fibonacciSeries!.getFibonacciNum())
+  }
+
   /**
    * A native method that not receives a data from JavaScript and returns nothing.
    *
@@ -72,12 +85,7 @@ class FibonacciSwiftNativeModule: RCTEventEmitter  {
   @objc
   func startFibonacciStream(_ resolver: @escaping RCTPromiseResolveBlock, rejecter: @escaping RCTPromiseRejectBlock) {
     do {
-      DispatchQueue.main.async {
-        self.streamTimer = Timer.scheduledTimer(withTimeInterval: self.delayTimeInterval! / 1000, repeats: true) {_ in
-          self.fibonacciSeries?.generateNextFibonacciNum()
-          self.sendNativeEventToJS("fibonacciSwiftEvent", num: self.fibonacciSeries!.getFibonacciNum())
-        }
-      }
+      self.streamTimer = Timer.scheduledTimer(timeInterval: self.delayTimeInterval! / 1000, target: self, selector: #selector(self.sendFibonacci), userInfo: nil, repeats: true)
       sendNativeEventToJS("fibonacciSwiftEvent", num: fibonacciSeries!.getInitFibonacciNum())
       resolver("start fibonacci stream")
     } catch let error {

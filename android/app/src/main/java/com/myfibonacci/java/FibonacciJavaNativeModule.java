@@ -94,6 +94,9 @@ public class FibonacciJavaNativeModule extends ReactContextBaseJavaModule {
                 streamTimer.cancel();
             }
             delayTimeInterval = 5000;
+            streamTimer = new Timer();
+            delayTimeInterval = 5000;
+            fibonacciSeries = new FibonacciSeries();
             fibonacciSeries.resetFibonacciNum();
             promise.resolve("stop fibonacci stream");
         } catch (Exception e) {

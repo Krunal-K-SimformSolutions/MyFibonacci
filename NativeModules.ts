@@ -6,8 +6,8 @@ declare module 'react-native' {
     FibonacciKotlinNativeModule: NativeModuleType & NativeModule;
     FibonacciObjectiveCNativeModule: NativeModuleType & NativeModule;
     FibonacciSwiftNativeModule: NativeModuleType & NativeModule;
-    NativeJavaModule: NativeModuleType & NativeModule;
-    NativeKotlinModule: NativeModuleType & NativeModule;
+    NativeJavaOrObjectiveCModule: NativeModuleType & NativeModule;
+    NativeKotlinOrSwiftModule: NativeModuleType & NativeModule;
   }
 }
 
@@ -86,6 +86,12 @@ const ModuleEventName = Platform.select({
   default: [],
 });
 
-const {[ModuleName[0]]: NativeJavaModule, [ModuleName[1]]: NativeKotlinModule} =
-  NativeModules;
-export {NativeJavaModule, NativeKotlinModule, ModuleEventName};
+const {
+  [ModuleName[0]]: NativeJavaOrObjectiveCModule,
+  [ModuleName[1]]: NativeKotlinOrSwiftModule,
+} = NativeModules;
+export {
+  NativeJavaOrObjectiveCModule,
+  NativeKotlinOrSwiftModule,
+  ModuleEventName,
+};
